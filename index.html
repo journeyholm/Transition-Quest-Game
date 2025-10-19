@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Transition Quest</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Bungee&display=swap" rel="stylesheet">
+    <style>
+        /* Prevents double-tap to zoom on touch devices */
+        button, .clickable {
+            touch-action: manipulation;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-bungee {
+            font-family: 'Bungee', cursive;
+        }
+        /* Custom transition classes for smooth animations */
+        .transition-all { transition: all 0.3s ease-in-out; }
+        .transition-transform { transition: transform 0.2s ease-in-out; }
+        .transition-opacity { transition: opacity 0.3s ease-in-out; }
+
+        /* --- THEME SYSTEM --- */
+        :root {
+            --bg-primary: #f3f4f6;
+            --bg-secondary: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --border-color: #d1d5db;
+            --correct-bg: #dcfce7;
+            --correct-text: #166534;
+            --incorrect-bg: #fee2e2;
+            --incorrect-text: #991b1b;
+        }
+        html.theme-dark {
+            --bg-primary: #1f2937;
+            --bg-secondary: #374151;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --accent: #60a5fa;
+            --accent-hover: #3b82f6;
+            --border-color: #4b5563;
+            --correct-bg: #14532d;
+            --correct-text: #bbf7d0;
+            --incorrect-bg: #991b1b;
+            --incorrect-text: #fecaca;
+        }
+        html.theme-ancient-scroll {
+            --bg-primary: #fdf6e3;
+            --bg-secondary: #eee8d5;
+            --text-primary: #586e75;
+            --text-secondary: #839496;
+            --accent: #b58900;
+            --accent-hover: #cb4b16;
+            --border-color: #93a1a1;
+            --correct-bg: #2aa198;
+            --correct-text: #fdf6e3;
+            --incorrect-bg: #dc322f;
+            --incorrect-text: #fdf6e3;
+        }
+        html.theme-neon-nights {
+            --bg-primary: #0d0221;
+            --bg-secondary: #26174a;
+            --text-primary: #f0f8ff;
+            --text-secondary: #a999c4;
+            --accent: #ff00f2;
+            --accent-hover: #c900c4;
+            --border-color: #4c3a7a;
+            --correct-bg: #00ff95;
+            --correct-text: #0d0221;
+            --incorrect-bg: #ff3366;
+            --incorrect-text: #0d0221;
+        }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        .game-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+        }
+        .btn-secondary {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover {
+            background-color: var(--bg-primary);
+        }
+        .option-btn {
+            background-color: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        .option-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .option-btn.correct {
+            background-color: var(--correct-bg);
+            border-color: var(--correct-text);
+            color: var(--correct-text);
+        }
+        .option-btn.incorrect {
+            background-color: var(--incorrect-bg);
+            border-color: var(--incorrect-text);
+            color: var(--incorrect-text);
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+        .modal-content {
+            background-color: var(--bg-secondary);
+        }
+        .progress-bar-bg {
+            background-color: var(--border-color);
+        }
+        .progress-bar-fill {
+            background-color: var(--accent);
+        }
+        .level-node {
+            background-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+        .level-node.unlocked {
+            background-color: var(--accent);
+            color: white;
+            cursor: pointer;
+        }
+        .level-node.completed {
+            background-color: #16a34a; /* green-600 */
+            color: white;
+        }
+        .level-node.category-focus {
+            box-shadow: 0 0 15px color-mix(in srgb, var(--accent) 40%, transparent);
+            border: 2px solid var(--accent);
+        }
+        .level-path {
+            background-color: var(--border-color);
+        }
+        
+        /* Shop & Achievement Styles */
+        .shop-item, .achievement-item {
+            border: 2px solid var(--border-color);
+        }
+        .shop-item.owned {
+             border-color: var(--accent);
+        }
+        .achievement-item.unlocked {
+            border-color: #f59e0b; /* amber-500 */
+            background-color: color-mix(in srgb, #f59e0b 5%, transparent);
+        }
+        
+        /* Ink Drop Animation */
+        @keyframes float-up {
+            from {
+                opacity: 1;
+                transform: translateY(0) scale(0.8);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-70px) scale(1.2);
+            }
+        }
+        .ink-drop-animation {
+            position: absolute;
+            z-index: 100;
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: var(--accent);
+            animation: float-up 1.3s ease-out forwards;
+            pointer-events: none;
+        }
+
+        /* Achievement Notification */
+        @keyframes slide-in-out {
+            0% { transform: translateY(-100%); opacity: 0; }
+            15% { transform: translateY(10%); opacity: 1; }
+            85% { transform: translateY(10%); opacity: 1; }
+            100% { transform: translateY(-100%); opacity: 0; }
+        }
+        .achievement-toast {
+            animation: slide-in-out 4s ease-in-out forwards;
+        }
+
+        /* Avatar Styles */
+        .avatar-display {
+            width: 120px;
+            height: 120px;
+            font-size: 3rem;
+            position: relative;
+        }
+        .avatar-part {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .shop-tab-btn.active {
+            border-bottom: 2px solid var(--accent);
+            color: var(--accent);
+        }
+        
+        /* Find the Flaw Styles */
+        .flaw-word {
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+            border-bottom: 2px dotted var(--border-color);
+        }
+        .flaw-word:hover {
+            background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+        }
+
+        #main-title {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 transition-all">
+    <div id="toast-container" class="fixed top-0 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md p-4"></div>
+
+    <div id="game-container" class="w-full max-w-5xl mx-auto">
+
+        <!-- Home Screen -->
+        <div id="home-screen" class="text-center">
+            <div class="flex flex-col items-center">
+                <div id="avatar-display-home" class="avatar-display game-card rounded-full flex items-center justify-center mb-4">
+                    <span class="avatar-part" data-part="head"></span>
+                    <span class="avatar-part" data-part="eyes"></span>
+                    <span class="avatar-part" data-part="mouth"></span>
+                </div>
+                <h1 id="main-title" class="text-6xl md:text-8xl font-bungee text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-400 mb-2">Transition Quest</h1>
+                <p id="player-title-display" class="text-2xl font-semibold mb-4" style="color: var(--accent);"></p>
+            </div>
+            <p class="text-xl text-secondary mb-8" style="color: var(--text-secondary);">Master the art of connection in your writing!</p>
+            <div class="space-y-4">
+                <button id="start-game-btn" class="w-full max-w-sm btn-primary text-2xl font-bold py-4 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-transform">Start Adventure</button>
+                <button id="reset-progress-btn" class="w-full max-w-sm btn-secondary py-3 px-6 rounded-lg">Reset Progress</button>
+            </div>
+             <div class="absolute top-4 left-4 flex items-center gap-2 p-2 rounded-lg game-card">
+                 <span class="text-2xl">💧</span>
+                 <span id="ink-drops-home" class="text-xl font-bold">0</span>
+             </div>
+            <div class="absolute top-4 right-4">
+                <button id="theme-toggle-home" class="p-3 rounded-full btn-secondary shadow-md">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Level Select Screen -->
+        <div id="level-select-screen" class="hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+                <div class="flex items-center gap-4">
+                     <div id="avatar-display-level" class="avatar-display h-20 w-20 text-2xl game-card rounded-full flex items-center justify-center">
+                        <span class="avatar-part" data-part="head"></span>
+                        <span class="avatar-part" data-part="eyes"></span>
+                        <span class="avatar-part" data-part="mouth"></span>
+                    </div>
+                    <h2 class="text-4xl font-bungee">World Map</h2>
+                </div>
+                 <div class="flex items-center justify-center sm:justify-end flex-wrap gap-2">
+                    <div class="flex items-center gap-2 p-2 rounded-lg game-card">
+                        <span class="text-2xl">💧</span>
+                        <span id="ink-drops-level" class="text-xl font-bold">0</span>
+                    </div>
+                    <button id="library-btn" class="btn-secondary py-2 px-4 rounded-lg flex items-center font-bold">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                        Library
+                    </button>
+                    <button id="progress-btn" class="btn-secondary py-2 px-4 rounded-lg flex items-center font-bold">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H3V9a4 4 0 014-4h2a4 4 0 014 4v2m-6 4h12M9 17a2 2 0 012 2h2a2 2 0 012-2m-4-2v2m0 0h2m-2-2h-2m2 2h2m-2-2h-2"></path></svg>
+                        Progress
+                    </button>
+                    <button id="achievements-btn" class="btn-secondary py-2 px-4 rounded-lg flex items-center font-bold">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        Trophies
+                    </button>
+                    <button id="shop-btn" class="btn-primary py-2 px-4 rounded-lg flex items-center font-bold">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Shop
+                    </button>
+                    <button id="home-btn-level" class="btn-secondary py-2 px-4 rounded-lg flex items-center">
+                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        Home
+                    </button>
+                </div>
+            </div>
+            <div id="level-map" class="relative p-8 game-card rounded-lg">
+                <!-- Levels will be dynamically generated here -->
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 id="level-title" class="text-3xl font-bold">Level 1: Identify</h2>
+                    <p id="level-instructions" class="text-secondary" style="color: var(--text-secondary);"></p>
+                </div>
+                <div class="flex items-center space-x-4">
+                     <button id="home-btn-game" class="btn-secondary py-2 px-4 rounded-lg flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        Home
+                    </button>
+                    <button id="theme-toggle-game" class="p-3 rounded-full btn-secondary shadow-md">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="game-card p-6 rounded-lg shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="text-lg font-semibold">Score: <span id="score">0</span></div>
+                    <div class="flex items-center gap-2 text-lg font-semibold">
+                        <span>💧</span>
+                        <span id="ink-drops-game">0</span>
+                    </div>
+                    <div class="text-lg font-semibold">Streak: <span id="streak">0</span> 🔥</div>
+                </div>
+                <div class="w-full progress-bar-bg rounded-full h-4 mb-6">
+                    <div id="progress-bar" class="progress-bar-fill h-4 rounded-full transition-all" style="width: 0%"></div>
+                </div>
+                <div id="question-area" class="text-xl mb-6 min-h-[100px] leading-relaxed"></div>
+                <div id="options-area" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                 <div id="consumables-area" class="mt-6 pt-4 border-t-2 border-dashed flex justify-center gap-4"></div>
+            </div>
+        </div>
+
+        <!-- Feedback Modal -->
+        <div id="feedback-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden transition-opacity">
+            <div class="modal-content w-full max-w-md p-6 rounded-lg shadow-xl text-center transform transition-transform scale-95 opacity-0">
+                <h3 id="feedback-title" class="text-3xl font-bold mb-2">Correct!</h3>
+                <p id="feedback-text" class="text-lg mb-6">You're a transition wizard!</p>
+                <button id="next-question-btn" class="btn-primary w-full py-3 rounded-lg font-semibold">Continue</button>
+            </div>
+        </div>
+        
+        <!-- Shop & Achievements Modal -->
+        <div id="generic-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden transition-opacity">
+            <div class="modal-content w-full max-w-2xl p-6 rounded-lg shadow-xl transform transition-transform scale-95 opacity-0">
+                <div class="flex justify-between items-center border-b pb-3 mb-4" style="border-color: var(--border-color);">
+                    <h2 id="generic-modal-title" class="text-3xl font-bungee">Shop</h2>
+                    <button id="close-generic-modal-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                 <div class="flex justify-center my-4 border-b border-gray-200 dark:border-gray-700" id="shop-tabs">
+                    <button class="shop-tab-btn active px-6 py-2 font-semibold" data-tab="avatar">Avatar</button>
+                    <button class="shop-tab-btn px-6 py-2 font-semibold" data-tab="cosmetics">Cosmetics</button>
+                    <button class="shop-tab-btn px-6 py-2 font-semibold" data-tab="consumables">Items</button>
+                </div>
+                <div id="generic-modal-body" class="max-h-[60vh] overflow-y-auto p-2">
+                    <!-- Content (Shop or Achievements) will be generated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- GAME DATA & CONFIGURATION ---
+const gameData = {
+    levels: [
+        { id: 1, title: "Identify the Link", category: "Mixed Practice", unlocks: [2], type: "multiple-choice", instructions: "Read the sentence and select the transition word or phrase.", questions: [ 
+            { question: "I wanted to go to the park. However, it started to rain.", options: ["go to the park", "However", "it started", "wanted to"], answer: "However", explanation: "'However' shows contrast." }, 
+            { question: "Because it was so cold, we decided to stay inside.", options: ["it was so cold", "decided to", "Because", "stay inside"], answer: "Because", explanation: "'Because' introduces a cause or reason." }, 
+            { question: "First, mix the flour and sugar. Then, add the eggs.", options: ["add the eggs", "First", "mix the flour", "Then"], answer: "Then", explanation: "'Then' shows sequence." },
+            { question: "She loves to read. In fact, she finishes a book every week.", options: ["loves to read", "In fact", "every week", "finishes a book"], answer: "In fact", explanation: "'In fact' is used for emphasis." },
+            { question: "We went to the zoo and, afterward, we got ice cream.", options: ["afterward", "went to the zoo", "we got", "ice cream"], answer: "afterward", explanation: "'Afterward' indicates time or sequence." },
+            { question: "The test was difficult. Nevertheless, she passed.", options: ["The test", "was difficult", "Nevertheless", "she passed"], answer: "Nevertheless", explanation: "'Nevertheless' shows a contrast, similar to 'however'." },
+            { question: "He is a great athlete. For example, he excels at both basketball and soccer.", options: ["great athlete", "For example", "excels at", "basketball and soccer"], answer: "For example", explanation: "'For example' introduces a specific illustration." },
+            { question: "In conclusion, the evidence strongly supports the theory.", options: ["In conclusion", "the evidence", "strongly supports", "the theory"], answer: "In conclusion", explanation: "'In conclusion' is used to summarize or end a discussion." }
+        ] },
+        { id: 2, title: "Fill the Gap", category: "Mixed Practice", unlocks: [5], type: "fill-in-the-blank", instructions: "Choose the best transition to complete the sentence.", questions: [ 
+            { question: "We were running late for the movie. ____, we managed to find good seats.", options: ["However", "Therefore", "Because", "For example"], answer: "However", explanation: "'However' is correct because it shows a contrast between being late and still finding good seats." }, 
+            { question: "He studied diligently for the test. ____, he received a perfect score.", options: ["although", "consequently", "meanwhile", "in other words"], answer: "consequently", explanation: "'Consequently' shows the result or effect of studying diligently." }, 
+            { question: "I need to finish my homework. ____, I can't go out with my friends.", options: ["Similarly", "For instance", "Therefore", "Nevertheless"], answer: "Therefore", explanation: "'Therefore' correctly indicates that not being able to go out is a result of needing to finish homework." },
+            { question: "The storm was getting worse. ____, the captain decided to return to the harbor.", options: ["Finally", "As a result", "In contrast", "Also"], answer: "As a result", explanation: "'As a result' shows the effect of the storm getting worse." },
+            { question: "The museum has many interesting exhibits. ____, the dinosaur fossils are very popular.", options: ["Specifically", "Although", "Instead", "Meanwhile"], answer: "Specifically", explanation: "'Specifically' is used to narrow down a general statement to a particular detail." },
+            { question: "You need to water the plants regularly. ____, they will wither and die.", options: ["Otherwise", "Moreover", "For example", "In fact"], answer: "Otherwise", explanation: "'Otherwise' presents an alternative or consequence if the first condition isn't met." },
+            { question: "She is an expert in marine biology. ____, she has written several books on the topic.", options: ["However", "In addition", "Therefore", "To illustrate"], answer: "In addition", explanation: "'In addition' adds another fact or piece of information." },
+            { question: "He didn't enjoy the concert. ____, he thought it was too loud.", options: ["Consequently", "Namely", "Even though", "Also"], answer: "Namely", explanation: "'Namely' is used to provide more specific details about something just mentioned." }
+        ] },
+        { id: 5, title: "Contrast Zone", category: "Focus: Contrast", unlocks: [3], type: "fill-in-the-blank", instructions: "Choose the best transition word to show contrast.", questions: [ 
+            { question: "She is very talented at singing. ____, her brother is a great dancer.", options: ["in contrast", "as a result", "for instance", "similarly"], answer: "in contrast", explanation: "'In contrast' is used to highlight the differences between two subjects." }, 
+            { question: "____ it was raining, we still went for a walk.", options: ["Although", "Because", "Therefore", "After"], answer: "Although", explanation: "'Although' introduces a clause that presents an obstacle or contrast." }, 
+            { question: "He loves spicy food. ____, his sister prefers mild flavors.", options: ["On the other hand", "In addition", "Consequently", "In fact"], answer: "On the other hand", explanation: "'On the other hand' presents an opposing point or fact." },
+            { question: "The movie received terrible reviews. ____, I actually enjoyed it.", options: ["Therefore", "Similarly", "Nevertheless", "For example"], answer: "Nevertheless", explanation: "'Nevertheless' shows an unexpected outcome in spite of the previous statement." },
+            { question: "He is a fantastic guitar player, ____ his singing is not very strong.", options: ["so", "because", "yet", "for"], answer: "yet", explanation: "'Yet' functions as a coordinating conjunction to connect two contrasting ideas." },
+            { question: "The black kitten is very playful. ____, the gray one is calm and sleepy.", options: ["Likewise", "In contrast", "As a result", "Also"], answer: "In contrast", explanation: "'In contrast' is perfect for comparing two different subjects." },
+            { question: "I wanted to finish the book, ____ I fell asleep.", options: ["but", "and", "so", "for"], answer: "but", explanation: "'But' is a simple and effective conjunction for showing a direct contrast." },
+            { question: "She knew it was a risky investment. ____, she put all her money into it.", options: ["Despite this", "Because of this", "As a result", "In addition"], answer: "Despite this", explanation: "'Despite this' shows that an action was taken even with the knowledge of a negative fact." }
+        ] },
+        { 
+            id: 3, 
+            title: "Choose Your Path", 
+            category: "Mixed Practice", 
+            unlocks: [6], 
+            type: "dynamic-story", 
+            instructions: "Choose the transition that best continues the story.",
+            stories: [
+                {
+                    startScene: 'start_knight',
+                    scenes: {
+                        'start_knight': { text: "A brave knight stood before a massive, snoring dragon guarding a treasure chest. The knight needed to get the treasure without waking the beast.", choices: [ { word: "Therefore", outcome: "Acting logically, the knight decided a direct approach was foolish and began to sneak around the slumbering giant.", nextScene: 'sneakSuccess', isCorrect: true }, { word: "However", outcome: "Despite the obvious danger, the knight suddenly had a strange urge and decided to poke the dragon with the pointy end of their sword.", nextScene: 'pokeDragon', isCorrect: false } ] },
+                        'sneakSuccess': { text: "The knight successfully tiptoed past the dragon and reached the treasure chest. The lock was old and rusty.", choices: [ { word: "As a result", outcome: "Because the lock was so rusty, it crumbled to dust with a single touch, revealing piles of glittering gold!", nextScene: 'endWin', isCorrect: true }, { word: "Nevertheless", outcome: "Even though the lock was rusty, it was magically sealed and refused to budge, leaving the treasure just out of reach.", nextScene: 'endStuck', isCorrect: false } ] },
+                        'pokeDragon': { text: "The dragon's eye snapped open, focusing on the knight with fiery rage. It let out a puff of smoke.", choices: [ { word: "Surprisingly", outcome: "Instead of fire, a stream of hot water shot out, perfectly brewing the tea leaves the knight had in their pocket. The dragon just wanted a friend for tea.", nextScene: 'endTea', isCorrect: false }, { word: "Consequently", outcome: "As a direct result of being poked, the dragon unleashed a torrent of flames, turning the knight's shiny armor into a pile of melted slag.", nextScene: 'endBurnt', isCorrect: true } ] },
+                        'endWin': { text: "The knight scooped up the gold and became fabulously wealthy. The dragon never even stirred. A perfect heist!", end: true },
+                        'endStuck': { text: "The knight, defeated by a rusty lock, had to sneak back past the dragon empty-handed. So close, yet so far.", end: true },
+                        'endTea': { text: "The knight and the dragon had a lovely tea party and became the best of friends, sharing stories and biscuits long into the night.", end: true },
+                        'endBurnt': { text: "The knight learned a valuable lesson about poking dragons. Unfortunately, they were too crispy to appreciate it. A tragic end.", end: true }
+                    }
+                },
+                {
+                    startScene: 'start_space',
+                    scenes: {
+                        'start_space': { text: "An astronaut landed on a strange, purple planet. A mysterious, glowing artifact hovered just ahead.", choices: [ { word: "Immediately", outcome: "Wasting no time, the astronaut rushed forward and grabbed the artifact.", nextScene: 'grabArtifact', isCorrect: false }, { word: "Cautiously", outcome: "Wisely, the astronaut first scanned the artifact with a tricorder to check for danger.", nextScene: 'scanArtifact', isCorrect: true } ] },
+                        'scanArtifact': { text: "The tricorder beeped, showing the artifact was harmless. It seemed to be a universal translator.", choices: [ { word: "In fact", outcome: "To prove it, the astronaut spoke into the device, and their words came out as a beautiful alien song!", nextScene: 'endSong', isCorrect: true }, { word: "Although", outcome: "Even though it was a translator, it mysteriously turned the astronaut's helmet into a fishbowl.", nextScene: 'endFish', isCorrect: false } ] },
+                        'grabArtifact': { text: "The moment the astronaut touched the artifact, it began to vibrate violently.", choices: [ { word: "As a result", outcome: "Because of the vibrations, the artifact teleported the astronaut back to their ship, but now they were only six inches tall.", nextScene: 'endSmall', isCorrect: true }, { word: "For example", outcome: "The artifact, as an example of its power, turned the astronaut's spacesuit into pajamas.", nextScene: 'endPajamas', isCorrect: false } ] },
+                        'endSong': { text: "The astronaut used the translator to communicate with the planet's shy inhabitants, forging a peaceful first contact.", end: true },
+                        'endFish': { text: "The astronaut now had a cool fishbowl for a helmet, but no way to talk to aliens. At least the view was interesting.", end: true },
+                        'endSmall': { text: "The tiny astronaut spent the rest of the day trying to climb up the ship's ladder. A small problem became a big one.", end: true },
+                        'endPajamas': { text: "The astronaut was very comfortable in their new pajamas, but not very prepared for the harsh alien environment.", end: true }
+                    }
+                },
+                {
+                    startScene: 'start_lab',
+                    scenes: {
+                        'start_lab': { text: "You are a scientist in a messy lab. Two beakers bubble in front of you: one glows green, the other purple.", choices: [ { word: "Meanwhile", outcome: "While you were deciding, your pet hamster escaped and drank the green liquid! It started to grow!", nextScene: 'hamsterGrows', isCorrect: false }, { word: "First", outcome: "You start by carefully pouring the purple liquid into the green one, following the instructions.", nextScene: 'mixCorrectly', isCorrect: true } ] },
+                        'mixCorrectly': { text: "The mixture turned a brilliant gold and smelled like fresh cookies. The formula was a success!", choices: [ { word: "As a result", outcome: "Because of your success, you won the Nobel Prize and a lifetime supply of cookies!", nextScene: 'endPrize', isCorrect: true }, { word: "However", outcome: "Despite its promising look, the liquid suddenly turned to solid rock, trapping your beaker forever.", nextScene: 'endRock', isCorrect: false } ] },
+                        'hamsterGrows': { text: "The hamster is now the size of a dog! It looks at you hungrily.", choices: [ { word: "Therefore", outcome: "Logically, you realize your only option is to offer it the giant carrot you were saving for lunch.", nextScene: 'endCarrot', isCorrect: true }, { word: "Similarly", outcome: "Just like the hamster, you also decide to drink the green liquid. Now you're both giant!", nextScene: 'endGiant', isCorrect: false } ] },
+                        'endPrize': { text: "Your cookie-scented formula changed the world. You are hailed as a hero of science (and baking).", end: true },
+                        'endRock': { text: "Your experiment was a failure, but you now have a very interesting paperweight.", end: true },
+                        'endCarrot': { text: "The giant hamster happily munches on the carrot. You've made a new best friend, but you'll need a bigger cage.", end: true },
+                        'endGiant': { text: "You and your giant hamster now live in the mountains, occasionally startling hikers.", end: true }
+                    }
+                }
+            ]
+        },
+        { id: 6, title: "Sequence Street", category: "Focus: Sequence", unlocks: [7], type: "fill-in-the-blank", instructions: "Choose the best transition word to show sequence.", questions: [ 
+            { question: "____, preheat the oven to 350 degrees.", options: ["Finally", "First", "Meanwhile", "For example"], answer: "First", explanation: "'First' is the correct choice to begin a list of instructions or steps." }, 
+            { question: "The main character faced the villain. ____, the sidekick was disarming the bomb.", options: ["Previously", "Meanwhile", "Therefore", "In conclusion"], answer: "Meanwhile", explanation: "'Meanwhile' indicates that two events are happening at the same time." }, 
+            { question: "We ate dinner, and ____ we watched a movie.", options: ["before", "during", "then", "finally"], answer: "then", explanation: "'Then' shows that one event happened immediately after another." },
+            { question: "I woke up and brushed my teeth. ____, I got dressed for school.", options: ["After that", "Before", "During", "Finally"], answer: "After that", explanation: "'After that' shows the next step in a morning routine." },
+            { question: "The team practiced for hours. ____, they were ready for the championship.", options: ["Previously", "At last", "During", "While"], answer: "At last", explanation: "'At last' or 'Finally' is used to indicate the end of a long process." },
+            { question: "She was writing her essay. ____, her brother was loudly playing video games.", options: ["Afterward", "Meanwhile", "Next", "First"], answer: "Meanwhile", explanation: "'Meanwhile' describes an action happening at the same time as another." },
+            { question: "The caterpillar spun a chrysalis. ____, it emerged as a beautiful butterfly.", options: ["Eventually", "Beforehand", "Initially", "Simultaneously"], answer: "Eventually", explanation: "'Eventually' signifies an outcome that happens after a long period." },
+            { question: "Please take off your shoes. ____, you can come inside.", options: ["Then", "During", "Before", "While"], answer: "Then", explanation: "'Then' indicates the immediate next step in a sequence." }
+        ] },
+        { 
+            id: 7, 
+            title: "The Impostor", 
+            category: "Focus: Analysis", 
+            unlocks: [4], 
+            type: "find-the-flaw", 
+            instructions: "Read the paragraph and tap the transition word that is used incorrectly.",
+            questions: [
+                { paragraph: "I love playing soccer. It is a great way to get exercise. ##For example##, you have to be ##able## to run a lot. The game requires teamwork. ##This is why## practicing with your team is so important.", options: ["For example", "able", "This is why"], answer: "For example", explanation: "'For example' is incorrect here because running a lot is a requirement, not an example. 'Specifically' would fit better." },
+                { paragraph: "##First##, you should preheat the oven. ##However##, you can start mixing the ingredients. Make sure you combine the flour and sugar ##before## adding the eggs. ##Finally##, you can put the cookie dough in the oven.", options: ["First", "However", "before", "Finally"], answer: "However", explanation: "'However' shows contrast, but this is a sequence. 'Next' or 'Then' is needed." },
+                { paragraph: "The library is my favorite place. It's always quiet. ##Similarly##, the cafeteria is loud, which makes it hard to concentrate. I can get so ##much## more work done when I am surrounded by books.", options: ["Similarly", "much"], answer: "Similarly", explanation: "'Similarly' shows comparison. Since the cafeteria is the opposite, 'In contrast' is needed." },
+                { paragraph: "He is allergic to cats. ##In addition##, he decided to adopt a kitten from the shelter. He bought allergy medicine ##and## a lot of tissues. It was a bold ##move##.", options: ["In addition", "and", "move"], answer: "In addition", explanation: "'In addition' adds a similar idea. Adopting a cat despite an allergy is a contrast. 'Nevertheless' or 'However' would be correct." },
+                { paragraph: "You must complete your chores. ##Otherwise##, you can go to the movies with your friends. Your room must be ##clean##, and the dog must be walked. ##Then## you can have fun.", options: ["Otherwise", "clean", "Then"], answer: "Otherwise", explanation: "'Otherwise' presents a negative consequence. The sentence implies a condition must be met *before* a reward. 'After' or 'Once' would work." },
+                { paragraph: "The concert was amazing. The band played all their famous songs. ##Consequently##, the lead singer had a fantastic voice. The crowd ##was## singing along all night.", options: ["Consequently", "was"], answer: "Consequently", explanation: "'Consequently' shows a result. The singer's voice is not a result of the band playing songs; it's an additional detail. 'Furthermore' or 'Moreover' would fit." },
+                { paragraph: "The hike was challenging. The trail was very steep. ##As a result##, the view from the top was a little disappointing. We ##still## had a good time, though.", options: ["As a result", "still"], answer: "As a result", explanation: "'As a result' implies the steep trail caused a disappointing view, which doesn't make sense. A contrast word like 'Although' or 'However' is needed at the start of the second sentence." },
+                { paragraph: "She is an ##expert## programmer. She can write code in five different languages. ##For instance##, she struggles with public speaking. She gets very ##nervous## in front of an audience.", options: ["expert", "For instance", "nervous"], answer: "For instance", explanation: "'For instance' introduces an example. Her struggle with public speaking is a contrasting point to her programming skill. 'On the other hand' would be a better fit." }
+            ]
+        },
+        { id: 4, title: "Sentence Rewriting", category: "Mixed Practice", unlocks: [], type: "multiple-choice", instructions: "Choose the best way to rewrite the sentence(s) using a transition.", questions: [ 
+            { question: "The team practiced every day. They lost the championship game.", options: [ "The team practiced every day. However, they lost the championship game.", "The team practiced every day. Therefore, they lost the championship game.", "The team practiced every day. For example, they lost the championship game.", "The team practiced every day. In addition, they lost the championship game." ], answer: "The team practiced every day. However, they lost the championship game.", explanation: "'However' is the best choice because it shows a contrast between the team's effort and the unexpected outcome." }, 
+            { question: "She is an excellent student. She completes all her assignments on time.", options: [ "She is an excellent student. For instance, she completes all her assignments on time.", "She is an excellent student. Although, she completes all her assignments on time.", "She is an excellent student. Meanwhile, she completes all her assignments on time.", "She is an excellent student. As a result, she completes all her assignments on time." ], answer: "She is an excellent student. For instance, she completes all her assignments on time.", explanation: "'For instance' correctly introduces an example that proves why she is an excellent student." },
+            { question: "The traffic was terrible. We arrived late for the meeting.", options: [ "The traffic was terrible. Consequently, we arrived late for the meeting.", "The traffic was terrible. Nevertheless, we arrived late for the meeting.", "The traffic was terrible. Similarly, we arrived late for the meeting.", "The traffic was terrible. Then, we arrived late for the meeting." ], answer: "The traffic was terrible. Consequently, we arrived late for the meeting.", explanation: "'Consequently' correctly shows the cause-and-effect relationship between the traffic and arriving late." },
+            { question: "He could go to the beach. He could go to the mountains.", options: [ "He could go to the beach. On the other hand, he could go to the mountains.", "He could go to the beach. As a result, he could go to the mountains.", "He could go to the beach. For example, he could go to the mountains.", "He could go to the beach. Finally, he could go to the mountains." ], answer: "He could go to the beach. On the other hand, he could go to the mountains.", explanation: "'On the other hand' is used to present an alternative or contrasting option." },
+            { question: "The instructions were complicated. She was able to assemble the desk.", options: [ "The instructions were complicated. Nevertheless, she was able to assemble the desk.", "The instructions were complicated. Therefore, she was able to assemble the desk.", "The instructions were complicated. Also, she was able to assemble the desk.", "The instructions were complicated. For instance, she was able to assemble the desk." ], answer: "The instructions were complicated. Nevertheless, she was able to assemble the desk.", explanation: "'Nevertheless' shows a surprising outcome in spite of a difficulty." },
+            { question: "Solar power is a renewable energy source. It helps reduce carbon emissions.", options: [ "Solar power is a renewable energy source. Furthermore, it helps reduce carbon emissions.", "Solar power is a renewable energy source. In contrast, it helps reduce carbon emissions.", "Solar power is a renewable energy source. However, it helps reduce carbon emissions.", "Solar power is a renewable energy source. For example, it helps reduce carbon emissions." ], answer: "Solar power is a renewable energy source. Furthermore, it helps reduce carbon emissions.", explanation: "'Furthermore' is the best choice to add another benefit or related idea." },
+            { question: "First, you chop the vegetables. Then, you saute them in a pan.", options: [ "First, you chop the vegetables. Afterward, you saute them in a pan.", "First, you chop the vegetables. For example, you saute them in a pan.", "First, you chop the vegetables. However, you saute them in a pan.", "First, you chop the vegetables. In contrast, you saute them in a pan." ], answer: "First, you chop the vegetables. Afterward, you saute them in a pan.", explanation: "'Afterward' correctly shows the next step in the sequence." }
+        ] },
+    ]
+};
+
+const shopData = {
+    avatarParts: {
+        heads: [
+            { id: 'head-smile', name: 'Smile', price: 0, icon: '😊', description: 'The classic, friendly look.' },
+            { id: 'head-cool', name: 'Cool', price: 20, icon: '😎', description: 'Shades for a cool writer.' },
+            { id: 'head-robot', name: 'Robot', price: 40, icon: '🤖', description: 'Ready to compute connections.' },
+            { id: 'head-alien', name: 'Alien', price: 40, icon: '👽', description: 'An otherworldly wordsmith.' },
+        ],
+        eyes: [
+            { id: 'eyes-default', name: 'Default', price: 0, icon: '', description: 'The original eyes.' },
+            { id: 'eyes-love', name: 'Love', price: 25, icon: '😍', description: 'For the love of language.' },
+            { id: 'eyes-laser', name: 'Laser', price: 50, icon: '🤩', description: 'Show your starry-eyed focus.' },
+        ],
+        mouths: [
+            { id: 'mouth-default', name: 'Default', price: 0, icon: '', description: 'The original mouth.' },
+            { id: 'mouth-tongue', name: 'Tongue Out', price: 15, icon: '😛', description: 'A fun, silly expression.' },
+            { id: 'mouth-zipper', name: 'Zipper', price: 30, icon: '🤐', description: 'My lips are sealed... with a zipper.' },
+        ]
+    },
+    themes: [
+        { id: 'theme-ancient-scroll', name: 'Ancient Scroll', price: 50, icon: '📜', description: 'For the classic scholar.' },
+        { id: 'theme-neon-nights', name: 'Neon Nights', price: 125, icon: '👾', description: 'A vibrant, high-energy look.' }
+    ],
+    titles: [
+        { id: 'title-connector', name: 'Connector', price: 25, icon: '🔗', description: 'A builder of bridges between ideas.' },
+        { id: 'title-word-wizard', name: 'Word Wizard', price: 75, icon: '🧙', description: 'Casting spells with sentences.' },
+        { id: 'title-grammar-guru', name: 'Grammar Guru', price: 150, icon: '👑', description: 'Grammatical enlightenment achieved.' }
+    ],
+    consumables: [
+        { id: 'consumable-hint-token', name: 'Hint Token', price: 10, icon: '💡', description: 'Reveals the hint for a question.' },
+        { id: 'consumable-streak-shield', name: 'Streak Shield', price: 35, icon: '🛡️', description: 'Prevents your streak from resetting on one incorrect answer.' }
+    ]
+};
+
+const achievementData = [
+    // Gameplay Achievements
+    { id: 'achieve-streak-star', name: 'Streak Star!', description: 'Achieve a 10-answer streak.', icon: '🌟', condition: (gs) => gs.playerData.streak >= 10 },
+    { id: 'achieve-perfect-score', name: 'Perfectionist', description: 'Get a 100% score on any level.', icon: '🎯', condition: (gs, ls) => ls.correct === ls.total },
+    { id: 'achieve-completionist', name: 'Quest Master', description: 'Complete all available levels.', icon: '🏆', condition: (gs) => gameData.levels.every(l => gs.playerData.completedLevels.includes(l.id)) },
+    { id: 'achieve-ink-baron', name: 'Ink Baron', description: 'Earn over 500 total Ink Drops.', icon: '💰', condition: (gs) => gs.playerData.inkDrops >= 500 },
+    // Hidden/Secret Achievements
+    { id: 'achieve-curious-clicker', name: 'Curious Clicker', description: 'You clicked the main title! What else is there to find?', icon: '👆', secret: true },
+    { id: 'achieve-theme-enthusiast', name: 'Theme Enthusiast', description: 'Rapidly changing your mind, are we?', icon: '🎨', secret: true },
+    { id: 'achieve-night-owl', name: 'Night Owl', description: 'Practicing in the evening? Dedication!', icon: '🦉', secret: true }
+];
+
+const libraryData = [
+    {
+        category: "What are Transitions?",
+        explanation: "Transitions are words and phrases that build bridges between ideas, sentences, and paragraphs. They help your writing flow smoothly and show the reader how your ideas are connected.",
+    },
+    {
+        category: "Addition",
+        explanation: "Use these to add a similar idea or more information.",
+        examples: ["in addition", "furthermore", "also", "moreover", "another"],
+        sentence: "The movie had a great plot. <em>Furthermore</em>, the acting was superb."
+    },
+    {
+        category: "Contrast",
+        explanation: "Use these to show a difference, opposition, or unexpected outcome.",
+        examples: ["however", "although", "in contrast", "on the other hand", "nevertheless"],
+        sentence: "He studied hard for the test. <em>However</em>, he did not get the grade he wanted."
+    },
+    {
+        category: "Sequence or Time",
+        explanation: "Use these to show the order of events or steps in a process.",
+        examples: ["first", "next", "then", "finally", "meanwhile", "afterward"],
+        sentence: "<em>First</em>, preheat the oven. <em>Then</em>, mix the ingredients."
+    },
+    {
+        category: "Cause and Effect",
+        explanation: "Use these to show that one thing is the result of another.",
+        examples: ["therefore", "as a result", "consequently", "so", "because"],
+        sentence: "It rained all day. <em>As a result</em>, the baseball game was canceled."
+    },
+    {
+        category: "Example or Emphasis",
+        explanation: "Use these to introduce a specific example or to emphasize a point.",
+        examples: ["for example", "for instance", "in fact", "specifically", "to illustrate"],
+        sentence: "She is a talented musician. <em>For example</em>, she can play three different instruments."
+    }
+];
+
+const dom = {
+    homeScreen: document.getElementById('home-screen'),
+    levelSelectScreen: document.getElementById('level-select-screen'),
+    gameScreen: document.getElementById('game-screen'),
+    mainTitle: document.getElementById('main-title'),
+    avatarDisplays: [document.getElementById('avatar-display-home'), document.getElementById('avatar-display-level')],
+    startGameBtn: document.getElementById('start-game-btn'),
+    resetProgressBtn: document.getElementById('reset-progress-btn'),
+    homeBtns: [document.getElementById('home-btn-level'), document.getElementById('home-btn-game')],
+    themeToggles: [document.getElementById('theme-toggle-home'), document.getElementById('theme-toggle-game')],
+    levelTitle: document.getElementById('level-title'),
+    levelInstructions: document.getElementById('level-instructions'),
+    score: document.getElementById('score'),
+    streak: document.getElementById('streak'),
+    progressBar: document.getElementById('progress-bar'),
+    questionArea: document.getElementById('question-area'),
+    optionsArea: document.getElementById('options-area'),
+    feedbackModal: document.getElementById('feedback-modal'),
+    feedbackTitle: document.getElementById('feedback-title'),
+    feedbackText: document.getElementById('feedback-text'),
+    nextQuestionBtn: document.getElementById('next-question-btn'),
+    levelMap: document.getElementById('level-map'),
+    consumablesArea: document.getElementById('consumables-area'),
+    toastContainer: document.getElementById('toast-container'),
+    inkDropsDisplays: [document.getElementById('ink-drops-home'), document.getElementById('ink-drops-level'), document.getElementById('ink-drops-game')],
+    playerTitleDisplay: document.getElementById('player-title-display'),
+    shopBtn: document.getElementById('shop-btn'),
+    achievementsBtn: document.getElementById('achievements-btn'),
+    progressBtn: document.getElementById('progress-btn'),
+    libraryBtn: document.getElementById('library-btn'),
+    genericModal: document.getElementById('generic-modal'),
+    genericModalTitle: document.getElementById('generic-modal-title'),
+    genericModalBody: document.getElementById('generic-modal-body'),
+    closeGenericModalBtn: document.getElementById('close-generic-modal-btn'),
+    shopTabs: document.getElementById('shop-tabs'),
+};
+
+let gameState = {};
+let themeClickCount = 0;
+let themeClickTimer = null;
+
+// The rest of the script is identical to the previous version and has been omitted for brevity.
+// All functions like getDefaultGameState, showScreen, startGame, etc., are present and unchanged.
+// The only changes are in the gameData object above.
+
+function getDefaultGameState() {
+    return {
+        playerData: {
+            score: 0,
+            streak: 0,
+            unlockedLevels: [1],
+            completedLevels: [],
+            unlockedAchievements: [],
+            inkDrops: 0,
+            totalQuestionsAnswered: 0,
+            totalCorrectAnswers: 0,
+            categoryStats: {},
+            inventory: {
+                themes: ['theme-light', 'theme-dark'],
+                titles: ['title-novice'],
+                consumables: {},
+                avatarParts: ['head-smile', 'eyes-default', 'mouth-default']
+            },
+            equipped: {
+                theme: 'theme-dark',
+                title: 'title-novice',
+                head: 'head-smile',
+                eyes: 'eyes-default',
+                mouth: 'mouth-default'
+            },
+            activeEffects: {
+                streakShield: false,
+            }
+        },
+        currentLevel: null,
+        currentQuestionIndex: 0,
+        currentStoryScenes: null,
+        currentSceneId: null,
+        selectedAnswer: null,
+        levelStats: { correct: 0, total: 0 }
+    };
+}
+
+function showScreen(screen) {
+    dom.homeScreen.classList.add('hidden');
+    dom.levelSelectScreen.classList.add('hidden');
+    dom.gameScreen.classList.add('hidden');
+    screen.classList.remove('hidden');
+}
+
+function startGame() {
+    showScreen(dom.levelSelectScreen);
+    renderLevelMap();
+    renderAvatar();
+}
+
+function goToHome() {
+    showScreen(dom.homeScreen);
+    updatePlayerTitle();
+    renderAvatar();
+}
+
+function selectLevel(levelId) {
+    const level = gameData.levels.find(l => l.id === levelId);
+    if (!level) return;
+    if (!gameState.playerData.unlockedLevels.includes(levelId)) return;
+    
+    gameState.currentLevel = level;
+    gameState.currentQuestionIndex = 0;
+    gameState.levelStats.correct = 0;
+    
+    if (level.type === 'dynamic-story') {
+        const story = level.stories[Math.floor(Math.random() * level.stories.length)];
+        gameState.currentStoryScenes = story.scenes;
+        gameState.currentSceneId = story.startScene;
+        gameState.levelStats.total = 1; 
+    } else {
+        gameState.levelStats.total = level.questions.length;
+    }
+
+    gameState.playerData.activeEffects.streakShield = false; 
+    showScreen(dom.gameScreen);
+    loadQuestion();
+}
+
+function saveProgress() {
+    localStorage.setItem('transitionQuestData', JSON.stringify(gameState.playerData));
+}
+
+function loadProgress() {
+    const savedData = localStorage.getItem('transitionQuestData');
+    if (savedData) {
+        const defaultData = getDefaultGameState().playerData;
+        const parsedData = JSON.parse(savedData);
+        gameState.playerData = {
+            ...defaultData,
+            ...parsedData,
+            inventory: { ...defaultData.inventory, ...(parsedData.inventory || {}) },
+            equipped: { ...defaultData.equipped, ...(parsedData.equipped || {}) },
+            activeEffects: { ...defaultData.activeEffects, ...(parsedData.activeEffects || {}) },
+            unlockedAchievements: parsedData.unlockedAchievements || [],
+            categoryStats: parsedData.categoryStats || {},
+        };
+        if (!gameState.playerData.inventory.avatarParts) {
+            gameState.playerData.inventory.avatarParts = ['head-smile', 'eyes-default', 'mouth-default'];
+        }
+    } else {
+        gameState = getDefaultGameState();
+    }
+}
+
+function resetProgress() {
+    if (confirm("Are you sure you want to reset all your progress? This cannot be undone.")) {
+        localStorage.removeItem('transitionQuestData');
+        gameState = getDefaultGameState();
+        updateAllUI();
+        goToHome();
+    }
+}
+
+function updateAllUI() {
+    updateInkDropsUI();
+    updatePlayerTitle();
+    updateScoreboard();
+    applyTheme(gameState.playerData.equipped.theme, false);
+    renderAvatar();
+}
+
+function updateInkDropsUI() {
+    dom.inkDropsDisplays.forEach(el => el.textContent = gameState.playerData.inkDrops);
+}
+
+function updatePlayerTitle() {
+    const defaultTitles = [ { id: 'title-novice', name: 'Novice Writer' } ];
+    const allTitles = [...defaultTitles, ...shopData.titles];
+    const equippedTitle = allTitles.find(t => t.id === gameState.playerData.equipped.title);
+    dom.playerTitleDisplay.textContent = `– ${equippedTitle.name} –`;
+}
+
+function updateScoreboard() {
+    dom.score.textContent = gameState.playerData.score;
+    dom.streak.textContent = gameState.playerData.streak;
+}
+
+function renderAvatar() {
+    const { head, eyes, mouth } = gameState.playerData.equipped;
+    
+    const headPart = shopData.avatarParts.heads.find(p => p.id === head);
+    const eyesPart = shopData.avatarParts.eyes.find(p => p.id === eyes);
+    const mouthPart = shopData.avatarParts.mouths.find(p => p.id === mouth);
+    
+    let finalHead = headPart.icon;
+    let finalEyes = eyesPart.icon;
+    let finalMouth = mouthPart.icon;
+    
+    if (eyesPart.icon) { finalHead = ''; }
+    if (mouthPart.icon) { finalHead = ''; }
+
+    dom.avatarDisplays.forEach(display => {
+        display.querySelector('[data-part="head"]').textContent = finalHead;
+        display.querySelector('[data-part="eyes"]').textContent = finalEyes;
+        display.querySelector('[data-part="mouth"]').textContent = finalMouth;
+    });
+}
+
+function applyTheme(themeId, save = true) {
+    const html = document.documentElement;
+    html.className = ''; // Clear all theme classes
+    html.classList.add(themeId);
+
+    gameState.playerData.equipped.theme = themeId;
+    if (save) saveProgress();
+}
+
+function renderLevelMap() {
+    dom.levelMap.innerHTML = '';
+    
+    const pathContainer = document.createElement('div');
+    pathContainer.className = "absolute top-1/2 -translate-y-1/2 left-0 right-0 h-2";
+    let pathHtml = `<div class="relative h-full mx-auto" style="width: ${100 - (100 / gameData.levels.length)}%"><div class="h-full level-path"></div></div>`;
+    pathContainer.innerHTML = pathHtml;
+    dom.levelMap.appendChild(pathContainer);
+
+    const container = document.createElement('div');
+    container.className = "relative flex justify-between items-start";
+    dom.levelMap.appendChild(container);
+
+    gameData.levels.forEach((level) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = "flex flex-col items-center gap-2 text-center";
+
+        const node = document.createElement('div');
+        node.className = 'level-node w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold z-10 transition-all transform hover:scale-110';
+        node.textContent = level.id;
+        
+        if (gameState.playerData.unlockedLevels.includes(level.id)) {
+            node.classList.add('unlocked');
+            if (gameState.playerData.completedLevels.includes(level.id)) {
+                node.classList.add('completed');
+                node.innerHTML += '<span class="absolute text-3xl">✔</span>';
+            }
+            node.onclick = () => selectLevel(level.id);
+        } else {
+             node.innerHTML = `<svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>`;
+        }
+        
+        const title = document.createElement('p');
+        title.className = "font-semibold w-24";
+        title.textContent = level.title;
+
+        if (level.category.startsWith('Focus:')) {
+            node.classList.add('category-focus');
+            title.style.color = 'var(--accent)';
+        }
+        
+        wrapper.appendChild(node);
+        wrapper.appendChild(title);
+        container.appendChild(wrapper);
+    });
+}
+
+function loadQuestion() {
+    const level = gameState.currentLevel;
+
+    dom.levelTitle.textContent = `Level ${level.id}: ${level.title}`;
+    dom.levelInstructions.textContent = level.instructions;
+    renderConsumables();
+    
+    dom.optionsArea.classList.remove('hidden');
+
+    if (level.type === 'dynamic-story') {
+        loadStoryScene();
+    } else if (level.type === 'find-the-flaw') {
+        loadFindTheFlaw();
+    } else {
+        const questionData = level.questions[gameState.currentQuestionIndex];
+        updateProgressBar();
+        loadMultipleChoice(questionData);
+    }
+}
+
+function loadMultipleChoice(questionData) {
+    dom.questionArea.innerHTML = questionData.question.replace('____', '<span class="inline-block bg-gray-200 dark:bg-gray-600 rounded-md px-4 py-1">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>');
+    dom.optionsArea.innerHTML = '';
+    
+    const shuffledOptions = [...questionData.options].sort(() => Math.random() - 0.5);
+
+    shuffledOptions.forEach(option => {
+        const button = document.createElement('button');
+        button.className = 'option-btn p-4 rounded-lg text-lg transition-transform transform hover:scale-102';
+        button.textContent = option;
+        button.disabled = false;
+        button.onclick = () => handleChoice(button, option);
+        dom.optionsArea.appendChild(button);
+    });
+}
+
+function loadStoryScene() {
+    const sceneData = gameState.currentStoryScenes[gameState.currentSceneId];
+    
+    dom.questionArea.textContent = sceneData.text;
+    dom.optionsArea.innerHTML = '';
+    dom.progressBar.style.width = '100%'; 
+
+    sceneData.choices.forEach(choice => {
+        const button = document.createElement('button');
+        button.className = 'option-btn p-4 rounded-lg text-lg transition-transform transform hover:scale-102';
+        button.textContent = choice.word;
+        button.onclick = () => handleStoryChoice(button, choice);
+        dom.optionsArea.appendChild(button);
+    });
+}
+
+function loadFindTheFlaw() {
+    const questionData = gameState.currentLevel.questions[gameState.currentQuestionIndex];
+    dom.optionsArea.innerHTML = ''; 
+    dom.optionsArea.classList.add('hidden');
+    updateProgressBar();
+    
+    let paragraphHtml = questionData.paragraph;
+    // Create a shuffled array of unique options to avoid replacing substrings
+    const uniqueOptions = [...new Set(questionData.options)];
+    uniqueOptions.forEach(word => {
+        const regex = new RegExp(`##${word}##`, 'g');
+        paragraphHtml = paragraphHtml.replace(regex, `<span class="flaw-word clickable">${word}</span>`);
+    });
+
+    dom.questionArea.innerHTML = paragraphHtml;
+
+    document.querySelectorAll('.flaw-word').forEach(span => {
+        span.onclick = (e) => handleChoice(e.target, e.target.textContent);
+    });
+}
+
+
+function handleChoice(element, answer) {
+    document.querySelectorAll('.flaw-word, .option-btn').forEach(el => { el.style.pointerEvents = 'none'; });
+    gameState.selectedAnswer = answer;
+    
+    const level = gameState.currentLevel;
+    const questionData = level.questions[gameState.currentQuestionIndex];
+    const isCorrect = (gameState.selectedAnswer === questionData.answer);
+    
+    element.classList.add(isCorrect ? 'correct' : 'incorrect');
+
+    handleAnswerResult(isCorrect, element);
+    
+    const isLast = gameState.currentQuestionIndex >= level.questions.length - 1;
+    
+    setTimeout(() => {
+        if (isLast) {
+            levelComplete();
+        } else {
+            showFeedbackModal(isCorrect, questionData.explanation, isCorrect ? "Correct!" : "Not Quite");
+            dom.nextQuestionBtn.onclick = () => {
+                hideFeedbackModal();
+                gameState.currentQuestionIndex++;
+                loadQuestion();
+            };
+        }
+    }, 1200);
+}
+
+function handleStoryChoice(button, choice) {
+    document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
+    button.classList.add(choice.isCorrect ? 'correct' : 'incorrect');
+    
+    handleAnswerResult(choice.isCorrect, button);
+    gameState.currentSceneId = choice.nextScene;
+    
+    setTimeout(() => {
+        const nextScene = gameState.currentStoryScenes[gameState.currentSceneId];
+        showFeedbackModal(choice.isCorrect, choice.outcome, choice.isCorrect ? "Good Choice!" : "An Interesting Turn...");
+        
+        dom.nextQuestionBtn.onclick = () => {
+            hideFeedbackModal();
+            if (nextScene.end) {
+                dom.questionArea.textContent = nextScene.text;
+                dom.optionsArea.innerHTML = '';
+                setTimeout(levelComplete, 1500);
+            } else {
+                loadStoryScene();
+            }
+        };
+    }, 1200);
+}
+
+
+function handleAnswerResult(isCorrect, targetElement) {
+    const category = gameState.currentLevel.category;
+    gameState.playerData.totalQuestionsAnswered++;
+    if (!gameState.playerData.categoryStats[category]) {
+        gameState.playerData.categoryStats[category] = { correct: 0, total: 0 };
+    }
+    gameState.playerData.categoryStats[category].total++;
+
+    if (isCorrect) {
+        gameState.playerData.streak++; // Increment streak first
+        const streakMultiplier = gameState.playerData.streak;
+
+        const scoreGain = 10 * streakMultiplier;
+        const inkDropGain = 1 * streakMultiplier;
+
+        gameState.playerData.score += scoreGain;
+        gameState.playerData.inkDrops += inkDropGain;
+        
+        gameState.levelStats.correct++;
+        gameState.playerData.totalCorrectAnswers++;
+        gameState.playerData.categoryStats[category].correct++;
+        showInkDropAnimation(inkDropGain, targetElement);
+    } else {
+        if (gameState.playerData.activeEffects.streakShield) {
+            gameState.playerData.activeEffects.streakShield = false;
+        } else {
+            gameState.playerData.streak = 0;
+        }
+    }
+    updateAllUI();
+    if (gameState.currentLevel.type !== 'dynamic-story') {
+        updateProgressBar(true);
+    }
+    checkAchievements();
+    saveProgress();
+}
+
+function levelComplete() {
+    const level = gameState.currentLevel;
+    if (!gameState.playerData.completedLevels.includes(level.id)) {
+        gameState.playerData.completedLevels.push(level.id);
+        gameState.playerData.inkDrops += 25;
+    }
+    
+    const levelData = gameData.levels.find(l => l.id === level.id);
+    if (levelData && levelData.unlocks) {
+        levelData.unlocks.forEach(levelToUnlockId => {
+            if (!gameState.playerData.unlockedLevels.includes(levelToUnlockId)) {
+                gameState.playerData.unlockedLevels.push(levelToUnlockId);
+            }
+        });
+    }
+
+    checkAchievements(true);
+    saveProgress();
+    
+    let summaryText;
+    if (level.type === 'dynamic-story') {
+        summaryText = `You completed the story and earned 💧25!`;
+    } else {
+        const accuracy = Math.round((gameState.levelStats.correct / gameState.levelStats.total) * 100);
+        summaryText = `You answered ${gameState.levelStats.correct} of ${gameState.levelStats.total} questions correctly (${accuracy}%). You earned 💧25!`;
+    }
+    
+    if(levelData.unlocks && levelData.unlocks.length > 0) { summaryText += ` The next level is unlocked!`; } 
+    else { summaryText += ` You've completed all available levels! Great work!`; }
+
+    dom.nextQuestionBtn.textContent = 'Back to World Map';
+    showFeedbackModal('level-complete', summaryText, `Level ${level.id} Complete!`);
+    
+    dom.nextQuestionBtn.onclick = () => {
+        hideFeedbackModal();
+        startGame();
+        setTimeout(() => { dom.nextQuestionBtn.textContent = 'Continue'; }, 400);
+    };
+}
+
+function updateProgressBar(questionCompleted = false) {
+    const questionsCount = gameState.currentLevel.questions.length;
+    const completedCount = questionCompleted ? gameState.currentQuestionIndex + 1 : gameState.currentQuestionIndex;
+    dom.progressBar.style.width = `${(completedCount / questionsCount) * 100}%`;
+}
+
+function showFeedbackModal(type, text, title) {
+    const modal = dom.feedbackModal;
+    const content = modal.querySelector('.modal-content');
+    dom.feedbackTitle.textContent = title;
+    dom.feedbackTitle.className = 'text-3xl font-bold mb-2 ';
+    switch(type) {
+        case true: dom.feedbackTitle.classList.add('text-green-600', 'dark:text-green-400'); break;
+        case false: dom.feedbackTitle.classList.add('text-red-600', 'dark:text-red-400'); break;
+        case 'hint': dom.feedbackTitle.classList.add('text-blue-600', 'dark:text-blue-400'); break;
+        case 'level-complete': dom.feedbackTitle.classList.add('text-yellow-500', 'dark:text-yellow-400'); break;
+    }
+    dom.feedbackText.textContent = text;
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95', 'opacity-0');
+    }, 10);
+}
+function hideFeedbackModal() {
+    const modal = dom.feedbackModal;
+    const content = modal.querySelector('.modal-content');
+    modal.classList.add('opacity-0');
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => { modal.classList.add('hidden'); }, 300);
+}
+
+function openGenericModal(title, contentRenderer, showTabs = false) {
+    dom.genericModalTitle.textContent = title;
+    dom.shopTabs.style.display = showTabs ? 'flex' : 'none';
+    contentRenderer();
+    dom.genericModal.classList.remove('hidden');
+    setTimeout(() => {
+        dom.genericModal.classList.remove('opacity-0');
+        dom.genericModal.querySelector('.modal-content').classList.remove('scale-95', 'opacity-0');
+    }, 10);
+}
+
+function closeGenericModal() {
+    dom.genericModal.classList.add('opacity-0');
+    dom.genericModal.querySelector('.modal-content').classList.add('scale-95', 'opacity-0');
+    setTimeout(() => { dom.genericModal.classList.add('hidden'); }, 300);
+}
+
+function openShop() {
+    openGenericModal('Ink Shop', () => renderShop('avatar'), true);
+    document.querySelectorAll('.shop-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('.shop-tab-btn[data-tab="avatar"]').classList.add('active');
+}
+
+function renderShop(tab) {
+    dom.genericModalBody.innerHTML = '';
+
+    if (tab === 'avatar') {
+        for (const partType in shopData.avatarParts) { 
+            const items = shopData.avatarParts[partType];
+            
+            const categoryTitle = document.createElement('h3');
+            categoryTitle.className = 'text-xl font-bold mt-4 mb-2 capitalize';
+            categoryTitle.textContent = partType;
+            dom.genericModalBody.appendChild(categoryTitle);
+
+            const container = document.createElement('div');
+            container.className = 'grid grid-cols-2 md:grid-cols-4 gap-4';
+            dom.genericModalBody.appendChild(container);
+
+            items.forEach(item => renderShopItem(item, 'avatarPart', container));
+        }
+    } else {
+        const container = document.createElement('div');
+        container.className = 'grid grid-cols-2 md:grid-cols-3 gap-4';
+        dom.genericModalBody.appendChild(container);
+
+        if (tab === 'cosmetics') {
+            const defaultThemes = [ { id: 'theme-light', name: 'Default Light', price: 0, icon: '☀️' }, { id: 'theme-dark', name: 'Default Dark', price: 0, icon: '🌙' } ];
+            const defaultTitles = [ { id: 'title-novice', name: 'Novice Writer', price: 0, icon: '📝' }];
+            const itemsToRender = [...defaultThemes, ...shopData.themes, ...defaultTitles, ...shopData.titles];
+            itemsToRender.forEach(item => renderShopItem(item, item.id.split('-')[0], container));
+        } else {
+            const itemsToRender = shopData.consumables;
+            itemsToRender.forEach(item => renderShopItem(item, 'consumable', container));
+        }
+    }
+}
+
+function renderShopItem(item, itemType, container) {
+    let isOwned;
+    if (itemType === 'consumable') {
+        isOwned = false;
+    } else if (itemType === 'avatarPart') {
+        isOwned = item.price === 0 || gameState.playerData.inventory.avatarParts.includes(item.id);
+    } else { // 'theme' or 'title'
+        isOwned = item.price === 0 || (gameState.playerData.inventory[itemType + 's'] && gameState.playerData.inventory[itemType + 's'].includes(item.id));
+    }
+    
+    let isEquipped = false;
+    if (itemType === 'avatarPart') {
+        const partCategory = item.id.split('-')[0];
+        isEquipped = gameState.playerData.equipped[partCategory] === item.id;
+    } else if (itemType !== 'consumable') {
+        isEquipped = gameState.playerData.equipped[itemType] === item.id;
+    }
+
+    const count = gameState.playerData.inventory.consumables[item.id] || 0;
+
+    const itemEl = document.createElement('div');
+    itemEl.className = `shop-item p-4 rounded-lg flex flex-col items-center justify-between gap-2 text-center transition-all ${isOwned ? 'owned' : ''}`;
+    
+    let buttonHtml = '';
+    let descriptionHtml = item.description ? `<div class="text-sm text-secondary my-2 h-10 flex items-center" style="color:var(--text-secondary);">${item.description}</div>` : '<div class="h-10 my-2"></div>';
+
+    if (itemType === 'consumable') {
+            buttonHtml = `<button onclick="buyItem('${item.id}', '${itemType}', ${item.price})" class="w-full py-1 rounded btn-secondary flex justify-center items-center gap-1">
+                        Buy 💧${item.price}
+                        </button>`;
+    } else if (isEquipped) {
+        buttonHtml = `<button disabled class="w-full py-1 rounded bg-gray-400 text-white cursor-not-allowed">Equipped</button>`;
+    } else if (isOwned) {
+        buttonHtml = `<button onclick="equipItem('${item.id}', '${itemType}')" class="w-full py-1 rounded btn-primary">Equip</button>`;
+    } else {
+        buttonHtml = `<button onclick="buyItem('${item.id}', '${itemType}', ${item.price})" class="w-full py-1 rounded btn-secondary flex justify-center items-center gap-1">
+                        Buy 💧${item.price}
+                        </button>`;
+    }
+
+    itemEl.innerHTML = `
+        <div class="text-5xl relative">${item.icon} ${itemType === 'consumable' && count > 0 ? `<span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">${count}</span>` : ''}</div>
+        <div class="font-semibold">${item.name}</div>
+        ${descriptionHtml}
+        ${buttonHtml}
+    `;
+    container.appendChild(itemEl);
+}
+
+
+function buyItem(itemId, itemType, price) {
+    if (gameState.playerData.inkDrops >= price) {
+        gameState.playerData.inkDrops -= price;
+        
+        if (itemType === 'consumable') {
+            if (!gameState.playerData.inventory.consumables[itemId]) gameState.playerData.inventory.consumables[itemId] = 0;
+            gameState.playerData.inventory.consumables[itemId]++;
+        } else if (itemType === 'avatarPart') {
+             gameState.playerData.inventory.avatarParts.push(itemId);
+        } else {
+            gameState.playerData.inventory[itemType + 's'].push(itemId);
+        }
+
+        saveProgress();
+        updateInkDropsUI();
+        const activeTab = document.querySelector('.shop-tab-btn.active').dataset.tab;
+        renderShop(activeTab);
+    } else {
+        alert("Not enough Ink Drops!");
+    }
+}
+
+function equipItem(itemId, itemType) { 
+    if (itemType === 'avatarPart') {
+        const partCategory = itemId.split('-')[0];
+        gameState.playerData.equipped[partCategory] = itemId;
+        renderAvatar();
+    } else {
+        gameState.playerData.equipped[itemType] = itemId;
+        if (itemType === 'theme') applyTheme(itemId);
+        if (itemType === 'title') updatePlayerTitle();
+    }
+    saveProgress();
+    const activeTab = document.querySelector('.shop-tab-btn.active').dataset.tab;
+    renderShop(activeTab);
+}
+
+function renderConsumables() {
+    dom.consumablesArea.innerHTML = '';
+    const consumables = gameState.playerData.inventory.consumables;
+    for (const itemId in consumables) {
+        if (consumables[itemId] > 0) {
+            const itemData = shopData.consumables.find(c => c.id === itemId);
+            if (itemData) {
+                const button = document.createElement('button');
+                button.className = 'btn-secondary p-2 rounded-lg flex items-center gap-2 transform hover:scale-105';
+                button.innerHTML = `<span class="text-2xl">${itemData.icon}</span> <span class="font-bold">${consumables[itemId]}</span>`;
+                button.onclick = () => useConsumable(itemId);
+                dom.consumablesArea.appendChild(button);
+            }
+        }
+    }
+}
+
+function useConsumable(itemId) {
+    if (gameState.playerData.inventory.consumables[itemId] > 0) {
+        gameState.playerData.inventory.consumables[itemId]--;
+
+        if (itemId === 'consumable-streak-shield') {
+            gameState.playerData.activeEffects.streakShield = true;
+            alert('Streak Shield activated! Your streak is safe for the next incorrect answer.');
+        } else if (itemId === 'consumable-hint-token') {
+             const questionData = gameState.currentLevel.questions[gameState.currentQuestionIndex];
+             if (questionData.hint) {
+                 showFeedbackModal('hint', questionData.hint, 'Hint');
+             }
+        }
+        
+        saveProgress();
+        renderConsumables();
+    }
+}
+
+function openAchievements() {
+    openGenericModal('Trophies', renderAchievements);
+    dom.shopTabs.style.display = 'none';
+}
+
+function renderAchievements() {
+    dom.genericModalBody.innerHTML = '';
+    const container = document.createElement('div');
+    container.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+    dom.genericModalBody.appendChild(container);
+
+    achievementData.forEach(ach => {
+        // Only show non-secret achievements, or secret ones that are unlocked
+        if (!ach.secret || gameState.playerData.unlockedAchievements.includes(ach.id)) {
+            const isUnlocked = gameState.playerData.unlockedAchievements.includes(ach.id);
+            const el = document.createElement('div');
+            el.className = `achievement-item p-4 rounded-lg flex items-center gap-4 ${isUnlocked ? 'unlocked' : 'opacity-60'}`;
+            el.innerHTML = `
+                <div class="text-5xl">${isUnlocked ? ach.icon : '❓'}</div>
+                <div>
+                    <h4 class="font-bold text-lg">${isUnlocked ? ach.name : 'Hidden Achievement'}</h4>
+                    <p class="text-sm">${isUnlocked ? ach.description : 'Keep playing to discover!'}</p>
+                </div>
+            `;
+            container.appendChild(el);
+        }
+    });
+}
+
+function openProgressReport() {
+    openGenericModal('Progress Report', renderProgressReport);
+    dom.shopTabs.style.display = 'none';
+}
+
+function renderProgressReport() {
+    dom.genericModalBody.innerHTML = '';
+    const { totalQuestionsAnswered, totalCorrectAnswers, categoryStats } = gameState.playerData;
+
+    const overallAccuracy = totalQuestionsAnswered > 0 ? Math.round((totalCorrectAnswers / totalQuestionsAnswered) * 100) : 0;
+
+    const container = document.createElement('div');
+    container.className = 'space-y-6';
+    
+    container.innerHTML = `
+        <div class="text-center p-4 game-card rounded-lg">
+            <h3 class="text-lg font-bold text-secondary" style="color:var(--text-secondary);">Overall Accuracy</h3>
+            <p class="text-5xl font-bungee" style="color:var(--accent);">${overallAccuracy}%</p>
+            <p class="text-sm text-secondary" style="color:var(--text-secondary);">${totalCorrectAnswers} / ${totalQuestionsAnswered} questions correct</p>
+        </div>
+        <div>
+            <h3 class="text-2xl font-bungee mb-4">By Category</h3>
+            <div id="category-stats-container" class="space-y-4"></div>
+        </div>
+    `;
+    
+    dom.genericModalBody.appendChild(container);
+    
+    const categoryContainer = document.getElementById('category-stats-container');
+    if (Object.keys(categoryStats).length === 0) {
+        categoryContainer.innerHTML = `<p class="text-center text-secondary" style="color:var(--text-secondary);">No category data yet. Play some levels to see your progress!</p>`;
+        return;
+    }
+
+    for (const category in categoryStats) {
+        const stats = categoryStats[category];
+        const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+        const categoryEl = document.createElement('div');
+        categoryEl.innerHTML = `
+            <div class="flex justify-between items-center mb-1">
+                <h4 class="font-bold">${category}</h4>
+                <span class="text-sm font-semibold">${stats.correct} / ${stats.total}</span>
+            </div>
+            <div class="w-full progress-bar-bg rounded-full h-4">
+                <div class="progress-bar-fill h-4 rounded-full transition-all text-white text-xs flex items-center justify-center font-bold" style="width: ${accuracy}%">
+                    ${accuracy}%
+                </div>
+            </div>
+        `;
+        categoryContainer.appendChild(categoryEl);
+    }
+}
+
+
+function checkAchievements(isLevelComplete = false) {
+    achievementData.forEach(ach => {
+        if (!gameState.playerData.unlockedAchievements.includes(ach.id) && !ach.secret) {
+            let conditionMet = false;
+            if (ach.id === 'achieve-perfect-score' && isLevelComplete && gameState.currentLevel.type !== 'dynamic-story') {
+                const levelStats = gameState.levelStats;
+                conditionMet = levelStats.correct === levelStats.total;
+            } else if (ach.id !== 'achieve-perfect-score') {
+                conditionMet = ach.condition(gameState);
+            }
+            
+            if (conditionMet) {
+                gameState.playerData.unlockedAchievements.push(ach.id);
+                showAchievementToast(ach);
+            }
+        }
+    });
+}
+
+function checkSpecificAchievement(achId) {
+    if (!gameState.playerData.unlockedAchievements.includes(achId)) {
+        const achievement = achievementData.find(a => a.id === achId);
+        if (achievement) {
+            gameState.playerData.unlockedAchievements.push(achId);
+            showAchievementToast(achievement);
+            saveProgress();
+        }
+    }
+}
+
+function showAchievementToast(achievement) {
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast game-card p-4 rounded-lg shadow-lg flex items-center gap-4 border-2 border-yellow-500';
+    toast.innerHTML = `
+        <div class="text-4xl">${achievement.icon}</div>
+        <div>
+            <h4 class="font-bold text-yellow-500">Achievement Unlocked!</h4>
+            <p>${achievement.name}</p>
+        </div>
+    `;
+    dom.toastContainer.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+}
+
+
+function showInkDropAnimation(amount, targetElement) {
+    const rect = targetElement.getBoundingClientRect();
+    const anim = document.createElement('span');
+    anim.className = 'ink-drop-animation';
+    anim.textContent = `💧+${amount}`;
+    anim.style.left = `${rect.left + rect.width / 2 - 15}px`;
+    anim.style.top = `${rect.top - 20}px`;
+    document.body.appendChild(anim);
+    setTimeout(() => anim.remove(), 1500);
+}
+
+function openLibrary() {
+    openGenericModal('The Library', renderLibrary);
+    dom.shopTabs.style.display = 'none';
+}
+
+function renderLibrary() {
+    dom.genericModalBody.innerHTML = '';
+    const container = document.createElement('div');
+    container.className = 'space-y-6 p-2';
+
+    libraryData.forEach(item => {
+        const entry = document.createElement('div');
+        entry.className = 'pb-4 border-b border-gray-200 dark:border-gray-700 last:border-b-0';
+        
+        let content = `<h3 class="text-xl font-bungee mb-2" style="color:var(--accent);">${item.category}</h3>
+                       <p class="text-secondary" style="color:var(--text-secondary);">${item.explanation}</p>`;
+        
+        if (item.examples) {
+            content += `<div class="mt-2 text-sm font-mono p-2 rounded" style="background-color:var(--bg-primary);">
+                            ${item.examples.join(', ')}
+                        </div>`;
+        }
+        if (item.sentence) {
+            content += `<p class="mt-2 text-secondary italic" style="color:var(--text-secondary);">${item.sentence}</p>`;
+        }
+
+        entry.innerHTML = content;
+        container.appendChild(entry);
+    });
+
+    dom.genericModalBody.appendChild(container);
+}
+
+function init() {
+    loadProgress();
+    
+    dom.startGameBtn.addEventListener('click', startGame);
+    dom.resetProgressBtn.addEventListener('click', resetProgress);
+    dom.homeBtns.forEach(btn => btn.addEventListener('click', goToHome));
+    
+    dom.themeToggles.forEach(btn => btn.addEventListener('click', () => {
+        clearTimeout(themeClickTimer);
+        themeClickCount++;
+        if (themeClickCount >= 5) {
+            checkSpecificAchievement('achieve-theme-enthusiast');
+            themeClickCount = 0;
+        }
+        themeClickTimer = setTimeout(() => { themeClickCount = 0; }, 2000);
+
+        const currentTheme = gameState.playerData.equipped.theme;
+        const newTheme = (currentTheme === 'theme-dark') ? 'theme-light' : 'theme-dark';
+        equipItem(newTheme, 'theme');
+    }));
+
+    dom.mainTitle.addEventListener('click', () => checkSpecificAchievement('achieve-curious-clicker'));
+
+    const currentHour = new Date().getHours();
+    if (currentHour >= 18) { // 6 PM or later
+        checkSpecificAchievement('achieve-night-owl');
+    }
+
+    dom.shopBtn.addEventListener('click', openShop);
+    dom.achievementsBtn.addEventListener('click', openAchievements);
+    dom.progressBtn.addEventListener('click', openProgressReport);
+    dom.libraryBtn.addEventListener('click', openLibrary);
+    dom.closeGenericModalBtn.addEventListener('click', closeGenericModal);
+    
+    dom.shopTabs.addEventListener('click', (e) => {
+        if (e.target.classList.contains('shop-tab-btn')) {
+            document.querySelectorAll('.shop-tab-btn').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            renderShop(e.target.dataset.tab);
+        }
+    });
+    
+    updateAllUI();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
+
